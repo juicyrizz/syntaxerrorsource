@@ -1,6 +1,6 @@
 import React from 'react';
 import { AlertTriangle, Code, Zap } from 'lucide-react';
-import { SimpleMusicPlayer } from './SimpleMusicPlayer';
+import { OptimizedMusicPlayer } from './OptimizedMusicPlayer';
 
 export const Header: React.FC = () => {
   return (
@@ -68,7 +68,7 @@ export const Header: React.FC = () => {
          }}>
         {'// Where bugs become features'}
       </p>
-      <SimpleMusicPlayer />
+      <OptimizedMusicPlayer />
     </header>
   );
 };

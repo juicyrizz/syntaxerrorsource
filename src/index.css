@@ -3,6 +3,22 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Optimize font loading */
+@font-face {
+  font-family: 'Orbitron';
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Roboto';
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Roboto Mono';
+  font-display: swap;
+}
+
 :root {
   --primary-color: #000;
   --secondary-color: #fff;
@@ -14,8 +30,33 @@
   --heading-color: #ADF8FF;
 }
 
+/* Optimize rendering */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 body {
   font-family: 'Roboto', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Optimize images */
+img {
+  content-visibility: auto;
+  contain-intrinsic-size: 300px 200px;
+}
+
+/* Optimize animations */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .font-orbitron {
