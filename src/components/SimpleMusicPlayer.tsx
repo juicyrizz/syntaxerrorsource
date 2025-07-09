@@ -24,55 +24,9 @@ export const SimpleMusicPlayer: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [isBuffering, setIsBuffering] = useState(false);
-  const [loadedTracks, setLoadedTracks] = useState<Set<number>>(new Set());
-  const [nextTrackPreloaded, setNextTrackPreloaded] = useState<HTMLAudioElement | null>(null);
+  const [error, setError] = useState<string | null>(null);
   
   const audioRef = useRef<HTMLAudioElement>(null);
-  const preloadRef = useRef<HTMLAudioElement | null>(null);
-
-  // Smart preloading: only preload the next track
-  const preloadNextTrack = useCallback(() => {
-    const nextIndex = (currentTrack + 1) % musicTracks.length;
-    const nextTrack = musicTracks[nextIndex];
-    
-    // Don't preload if already loaded or currently loading
-    if (loadedTracks.has(nextIndex) || !nextTrack) return;
-    
-    // Clean up previous preload
-    if (preloadRef.current) {
-      preloadRef.current.pause();
-      preloadRef.current.src = '';
-    }
-    
-    // Create new preload audio element
-    const preloadAudio = new Audio();
-    preloadAudio.preload = 'auto';
-    preloadAudio.volume = 0; // Mute preloaded audio
-    
-    preloadAudio.addEventListener('canplaythrough', () => {
-      setLoadedTracks(prev => new Set(prev).add(nextIndex));
-      setNextTrackPreloaded(preloadAudio);
-      console.log(`Next track ${nextIndex} preloaded successfully`);
-    });
-    
-    preloadAudio.addEventListener('error', (e) => {
-      console.error(`Failed to preload next track ${nextIndex}:`, e);
-    });
-    
-    // Start preloading
-    preloadAudio.src = nextTrack.src;
-    preloadRef.current = preloadAudio;
-  }, [currentTrack, loadedTracks]);
-
-  // Preload next track after current track starts playing
-  useEffect(() => {
-    if (isPlaying && !isLoading) {
-      // Delay preloading to not interfere with current playback
-      const timeoutId = setTimeout(preloadNextTrack, 2000);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [isPlaying, isLoading, preloadNextTrack]);
 
   // Audio event handlers
   const handleLoadedMetadata = useCallback(() => {
@@ -80,10 +34,9 @@ export const SimpleMusicPlayer: React.FC = () => {
     if (audio && !isNaN(audio.duration)) {
       setDuration(audio.duration);
       setIsLoading(false);
-      setIsBuffering(false);
-      setLoadedTracks(prev => new Set(prev).add(currentTrack));
+      setError(null);
     }
-  }, [currentTrack]);
+  }, []);
 
   const handleTimeUpdate = useCallback(() => {
     const audio = audioRef.current;
@@ -94,20 +47,12 @@ export const SimpleMusicPlayer: React.FC = () => {
 
   const handleCanPlay = useCallback(() => {
     setIsLoading(false);
-    setIsBuffering(false);
+    setError(null);
   }, []);
-
-  const handleWaiting = useCallback(() => {
-    setIsBuffering(true);
-  }, []);
-
-  const handleCanPlayThrough = useCallback(() => {
-    setIsBuffering(false);
-    setLoadedTracks(prev => new Set(prev).add(currentTrack));
-  }, [currentTrack]);
 
   const handlePlay = useCallback(() => {
     setIsPlaying(true);
+    setIsLoading(false);
   }, []);
 
   const handlePause = useCallback(() => {
@@ -121,16 +66,15 @@ export const SimpleMusicPlayer: React.FC = () => {
     setCurrentTrack(nextTrack);
   }, [currentTrack]);
 
-  const handleError = useCallback((e: Event) => {
-    console.error('Audio error:', e);
+  const handleError = useCallback(() => {
+    setError('Failed to load audio file');
     setIsPlaying(false);
     setIsLoading(false);
-    setIsBuffering(false);
   }, []);
 
   const handleLoadStart = useCallback(() => {
     setIsLoading(true);
-    setIsBuffering(true);
+    setError(null);
   }, []);
 
   // Set up audio event listeners
@@ -141,8 +85,6 @@ export const SimpleMusicPlayer: React.FC = () => {
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('canplay', handleCanPlay);
-    audio.addEventListener('waiting', handleWaiting);
-    audio.addEventListener('canplaythrough', handleCanPlayThrough);
     audio.addEventListener('play', handlePlay);
     audio.addEventListener('pause', handlePause);
     audio.addEventListener('ended', handleEnded);
@@ -153,17 +95,15 @@ export const SimpleMusicPlayer: React.FC = () => {
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('canplay', handleCanPlay);
-      audio.removeEventListener('waiting', handleWaiting);
-      audio.removeEventListener('canplaythrough', handleCanPlayThrough);
       audio.removeEventListener('play', handlePlay);
       audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
       audio.removeEventListener('loadstart', handleLoadStart);
     };
-  }, [handleLoadedMetadata, handleTimeUpdate, handleCanPlay, handleWaiting, handleCanPlayThrough, handlePlay, handlePause, handleEnded, handleError, handleLoadStart]);
+  }, [handleLoadedMetadata, handleTimeUpdate, handleCanPlay, handlePlay, handlePause, handleEnded, handleError, handleLoadStart]);
 
-  // Handle track changes with smart loading
+  // Handle track changes
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -171,69 +111,19 @@ export const SimpleMusicPlayer: React.FC = () => {
     const currentTrackData = musicTracks[currentTrack];
     if (!currentTrackData) return;
 
-    // Stop current playback
-    const wasPlaying = isPlaying;
-    setIsPlaying(false);
+    // Reset states
     setCurrentTime(0);
-    setIsBuffering(true);
-
-    // Check if we have a preloaded version of this track
-    if (nextTrackPreloaded && loadedTracks.has(currentTrack)) {
-      // Use preloaded audio for instant switching
-      audio.src = nextTrackPreloaded.src;
-      audio.currentTime = 0;
-      audio.volume = isMuted ? 0 : volume;
-      
-      if (wasPlaying) {
-        const playPromise = audio.play();
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              setIsPlaying(true);
-              setIsBuffering(false);
-            })
-            .catch((error) => {
-              console.error('Error playing preloaded audio:', error);
-              setIsBuffering(false);
-            });
-        }
-      } else {
-        setIsBuffering(false);
-      }
-    } else {
-      // Load track normally
+    setDuration(0);
+    setError(null);
+    
+    // Only set loading if we're actually changing the source
+    if (audio.src !== window.location.origin + currentTrackData.src) {
+      setIsLoading(true);
       audio.src = currentTrackData.src;
       audio.load();
-      
-      if (wasPlaying) {
-        // Wait for audio to be ready before playing
-        const playWhenReady = () => {
-          if (audio.readyState >= 2) { // HAVE_CURRENT_DATA
-            const playPromise = audio.play();
-            if (playPromise !== undefined) {
-              playPromise
-                .then(() => {
-                  setIsPlaying(true);
-                })
-                .catch((error) => {
-                  console.error('Error playing audio:', error);
-                });
-            }
-          } else {
-            // Wait a bit more
-            setTimeout(playWhenReady, 100);
-          }
-        };
-        playWhenReady();
-      }
     }
 
-    // Clear the used preloaded audio
-    if (nextTrackPreloaded && loadedTracks.has(currentTrack)) {
-      setNextTrackPreloaded(null);
-    }
-
-  }, [currentTrack, nextTrackPreloaded, loadedTracks, volume, isMuted]);
+  }, [currentTrack]);
 
   // Update volume
   useEffect(() => {
@@ -243,61 +133,20 @@ export const SimpleMusicPlayer: React.FC = () => {
     }
   }, [volume, isMuted]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (preloadRef.current) {
-        preloadRef.current.pause();
-        preloadRef.current.src = '';
-      }
-    };
-  }, []);
-
   const togglePlay = async () => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio || isLoading) return;
 
     try {
       if (isPlaying) {
         audio.pause();
       } else {
-        // Ensure audio is ready before playing
-        if (audio.readyState < 2) {
-          setIsBuffering(true);
-          // Wait for audio to be ready with timeout
-          const waitForReady = new Promise<void>((resolve, reject) => {
-            const timeout = setTimeout(() => {
-              reject(new Error('Audio loading timeout'));
-            }, 10000); // 10 second timeout
-
-            const onCanPlay = () => {
-              clearTimeout(timeout);
-              audio.removeEventListener('canplay', onCanPlay);
-              audio.removeEventListener('error', onError);
-              setIsBuffering(false);
-              resolve();
-            };
-
-            const onError = () => {
-              clearTimeout(timeout);
-              audio.removeEventListener('canplay', onCanPlay);
-              audio.removeEventListener('error', onError);
-              reject(new Error('Audio loading failed'));
-            };
-
-            audio.addEventListener('canplay', onCanPlay);
-            audio.addEventListener('error', onError);
-          });
-
-          await waitForReady;
-        }
-        
         await audio.play();
       }
     } catch (error) {
       console.error('Error playing audio:', error);
+      setError('Failed to play audio');
       setIsPlaying(false);
-      setIsBuffering(false);
     }
   };
 
@@ -352,15 +201,10 @@ export const SimpleMusicPlayer: React.FC = () => {
       
       <div className="bg-black/60 backdrop-blur-lg rounded-xl border border-cyan-300/20 p-4 shadow-[0_0_20px_rgba(173,248,255,0.2)]">
         
-        {/* Loading/Buffering Indicator */}
-        {(isLoading || isBuffering) && (
-          <div className="text-center mb-3">
-            <div className="flex items-center justify-center gap-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-cyan-400"></div>
-              <p className="text-cyan-300 text-xs">
-                {isLoading ? 'Loading track...' : 'Buffering...'}
-              </p>
-            </div>
+        {/* Error Message */}
+        {error && (
+          <div className="text-center mb-3 p-2 bg-red-900/40 border border-red-500/40 rounded">
+            <p className="text-red-300 text-xs">{error}</p>
           </div>
         )}
         
@@ -411,7 +255,7 @@ export const SimpleMusicPlayer: React.FC = () => {
                 : 'bg-gradient-to-r from-cyan-600 to-blue-600 border-cyan-400/50 hover:from-cyan-500 hover:to-blue-500 hover:shadow-[0_0_15px_rgba(173,248,255,0.5)] hover:scale-110 cursor-pointer'
             }`}
           >
-            {isLoading || isBuffering ? (
+            {isLoading ? (
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
             ) : isPlaying ? (
               <Pause className="w-5 h-5" />
@@ -475,7 +319,7 @@ export const SimpleMusicPlayer: React.FC = () => {
               <span className="flex-1 truncate">{track.title}</span>
               
               {/* Playing indicator */}
-              {index === currentTrack && isPlaying && !isBuffering && (
+              {index === currentTrack && isPlaying && (
                 <div className="flex gap-1">
                   <div className="w-1 h-2 bg-cyan-300 rounded-full animate-pulse"></div>
                   <div className="w-1 h-2 bg-cyan-300 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
@@ -484,13 +328,8 @@ export const SimpleMusicPlayer: React.FC = () => {
               )}
               
               {/* Loading indicator for current track */}
-              {index === currentTrack && (isLoading || isBuffering) && (
+              {index === currentTrack && isLoading && (
                 <div className="animate-spin rounded-full h-3 w-3 border border-cyan-300 border-t-transparent"></div>
-              )}
-              
-              {/* Ready indicator */}
-              {loadedTracks.has(index) && index !== currentTrack && (
-                <div className="w-1.5 h-1.5 bg-green-400 rounded-full opacity-60" title="Ready"></div>
               )}
             </button>
           ))}
