@@ -4,31 +4,15 @@ import { Play, Pause, Volume2, VolumeX, SkipBack, SkipForward } from 'lucide-rea
 const musicTracks = [
   {
     title: "Break The Loop",
-    src: "/music/1096 Gang ft. @trvmata7292 - BREAK THE LOOP (Official Music Video) prod. by Asiaboi x Guddisc [MvuDoBGTy6g].mp3"
+    src: "/music/break-the-loop.mp3"
   },
   {
     title: "Like It", 
-    src: "/music/14K SOJA - Like It (Booty Music Remix) [dJyw6Q3SADs].mp3"
+    src: "/music/like-it.mp3"
   },
   {
     title: "Day Dreaming",
-    src: "/music/Day Dreaming - Youngwise, Trvmata & Guddhist (Prod.By_ Macky Llaneta) [AThXIvwDe9I].mp3"
-  },
-  {
-    title: "My Day",
-    src: "/music/HELLMERRY - My Day (Official Music Video) [5v8CYpYAHT0].mp3"
-  },
-  {
-    title: "Para Sa Streets",
-    src: "/music/Hev Abi - Para Sa Streets (Official Lyric Video) (Prod. Noane) [75UGXuyoFII].mp3"
-  },
-  {
-    title: "Lynx",
-    src: "/music/Lynx - Elohim [PLNVDKbeMRc].mp3"
-  },
-  {
-    title: "MAN IN THE MERROR",
-    src: "/music/WAIIAN - MAN IN THE MERROR (Official Lyric Video) [nrj9JlraMn0].mp3"
+    src: "/music/day-dreaming.mp3"
   }
 ];
 
