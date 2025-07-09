@@ -4,15 +4,19 @@ import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
 const musicTracks = [
   {
     title: "Break The Loop",
-    src: "/music/1096 Gang ft. @trvmata7292 - BREAK THE LOOP (Official Music Video) prod. by Asiaboi x Guddisc [MvuDoBGTy6g].mp3"
+    src: "/music/break-the-loop.mp3"
   },
   {
     title: "Like It",
-    src: "/music/14K SOJA - Like It (Booty Music Remix) [dJyw6Q3SADs].mp3"
+    src: "/music/like-it.mp3"
   },
   {
     title: "Day Dreaming", 
-    src: "/music/Day Dreaming - Youngwise, Trvmata & Guddhist (Prod.By_ Macky Llaneta) [AThXIvwDe9I].mp3"
+    src: "/music/day-dreaming.mp3"
+  },
+  {
+    title: "Your Song Here",
+    src: "/music/your-song.mp3"
   }
 ];
 
