@@ -13,10 +13,6 @@ const musicTracks = [
   {
     title: "Day Dreaming", 
     src: "/music/day-dreaming.mp3"
-  },
-  {
-    title: "Your Song Here",
-    src: "/music/your-song.mp3"
   }
 ];
 
