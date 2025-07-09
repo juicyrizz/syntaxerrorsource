@@ -31,21 +31,30 @@ export const SimpleMusicPlayer: React.FC = () => {
 
     const updateTime = () => setCurrentTime(audio.currentTime);
     const updateDuration = () => setDuration(audio.duration);
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
     const handleEnded = () => {
       setIsPlaying(false);
       // Auto play next track
       const nextTrack = (currentTrack + 1) % musicTracks.length;
       setCurrentTrack(nextTrack);
     };
+    const handleError = () => setIsPlaying(false);
 
     audio.addEventListener('timeupdate', updateTime);
     audio.addEventListener('loadedmetadata', updateDuration);
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
     audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError);
 
     return () => {
       audio.removeEventListener('timeupdate', updateTime);
       audio.removeEventListener('loadedmetadata', updateDuration);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError);
     };
   }, [currentTrack]);
 
@@ -56,6 +65,12 @@ export const SimpleMusicPlayer: React.FC = () => {
     audio.volume = isMuted ? 0 : volume;
   }, [volume, isMuted]);
 
+  // Reset playing state when track changes
+  useEffect(() => {
+    setIsPlaying(false);
+    setCurrentTime(0);
+  }, [currentTrack]);
+
   const togglePlay = async () => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -63,13 +78,12 @@ export const SimpleMusicPlayer: React.FC = () => {
     try {
       if (isPlaying) {
         audio.pause();
-        setIsPlaying(false);
       } else {
         await audio.play();
-        setIsPlaying(true);
       }
     } catch (error) {
       console.error('Error playing audio:', error);
+      setIsPlaying(false);
     }
   };
 
